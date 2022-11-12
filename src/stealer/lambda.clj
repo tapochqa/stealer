@@ -7,7 +7,8 @@
    [clojure.java.io :as io]
    [cheshire.core :as json]
    [clojure.string :as str]
-   [stealer.handling :as handling])
+   [stealer.handling :as handling]
+   [stealer.telegram :as telegram])
   
   (:import
    java.io.File
@@ -33,38 +34,35 @@
            httpMethod
            body
            isBase64Encoded
-           headers]}]
-  {:remote-addr (get-in requestContext ["identity" "sourceIp"])
-   :uri (if (= path "") "/" path)
-   :query-params queryStringParameters
-   :request-method (-> httpMethod name str/lower-case keyword)
-   :headers (update-keys headers str/lower-case)
-   :body (if isBase64Encoded
-           (-> body
-               (str->bytes "UTF-8")
-               (b64-decode)
-               (io/input-stream))
-           (-> body
-               (str->bytes "UTF-8")
-               (io/input-stream)))})
-
-(comment
-  
-
-  
-  (-> (parse-request (json/parse-string (slurp "resources/yc-request.json")))
-    :body
-    slurp
-    (json/parse-string true))
-  
-  )
+           headers
+           messages] :as request} {:keys [debug-chat-id] :as config}]
+  (let [parsed
+        {:remote-addr (get-in requestContext ["identity" "sourceIp"])
+         :uri (if (= path "") "/" path)
+         :query-params queryStringParameters
+         :request-method 
+         (if httpMethod
+           (-> httpMethod name str/lower-case keyword)
+           :trigger)
+         :headers (update-keys headers str/lower-case)
+         :messages (json/generate-string messages)
+         :body (if isBase64Encoded
+                 (-> (str "" body)
+                     (str->bytes "UTF-8")
+                     (b64-decode)
+                     (io/input-stream))
+                 (-> (str "" body)
+                     (str->bytes "UTF-8")
+                     (io/input-stream)))}]
+    (if debug-chat-id
+      (telegram/send-message config debug-chat-id (str parsed)))
+    parsed))
 
 
-
-(defn ->request []
+(defn ->request [config]
   (-> *in*
       (json/parse-stream)
-      (parse-request)))
+      (parse-request config)))
 
 
 (defn encode-body [body]
@@ -80,19 +78,26 @@
 
 
 (defn handle-request!
-  [{:keys [headers body] :as request} config]
+  [{:keys [headers body messages] :as request} config]
   
   (let [message (-> body
                  slurp
                  (json/parse-string true)
-                 :message)]
-  
+                 :message)
+        trigger-id
+                (-> messages
+                  (json/parse-string true)
+                  first
+                  :details
+                  :trigger_id 
+                  )]
   
   {:body
    (json/encode 
      (handling/the-handler
+       config
        message
-       config))
+       trigger-id))
    
    :headers headers
    
@@ -100,7 +105,7 @@
 
 
 (defn response->
-  [{:keys [status headers body]}]
+  [{:keys [status headers]}]
   (json/with-writer [*out* nil]
     (json/write
      (cond-> nil

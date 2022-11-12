@@ -10,7 +10,9 @@
   :dependencies
   [[org.clojure/clojure "1.11.1"]
    [http-kit            "2.6.0"]
-   [cheshire            "5.10.0"]]
+   [cheshire            "5.10.0"]
+   [seancorfield/next.jdbc "1.0.409"]
+   [mysql/mysql-connector-java "8.0.31"]]
 
   :main ^:skip-aot stealer.core
 

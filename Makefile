@@ -1,3 +1,5 @@
+all: bash-package
+
 lint:
 	clj-kondo --lint src
 
@@ -9,13 +11,18 @@ NI_ARGS = \
 	--initialize-at-build-time \
 	--report-unsupported-elements-at-runtime \
 	--no-fallback \
+	--no-server \
 	-jar ${JAR} \
 	-J-Dfile.encoding=UTF-8 \
-	--enable-http \
-	--enable-https \
+	--enable-url-protocols=http,https \
 	-H:+PrintClassInitialization \
 	-H:+ReportExceptionStackTraces \
 	-H:Log=registerResource \
+	--initialize-at-run-time=com.mysql.cj.jdbc.AbandonedConnectionCleanupThread \
+	--initialize-at-run-time=com.mysql.cj.jdbc.AbandonedConnectionCleanupThread.AbandonedConnectionCleanupThread \
+	--initialize-at-run-time=com.mysql.cj.jdbc.Driver \
+	--initialize-at-run-time=com.mysql.cj.jdbc.NonRegisteringDriver \
+	-H:ReflectionConfigurationFiles=reflection-config.json \
 	-H:Name=./builds/${NAME}-
 
 PLATFORM = PLATFORM
@@ -30,6 +37,19 @@ set-webhook:
 	--url 'https://api.telegram.org/bot$(token)/setWebhook' \
 	--header 'content-type: application/json' \
 	--data '{"url": "https://functions.yandexcloud.net/$(id)}'
+
+delete-webhook:
+	curl \
+	--request POST \
+	--url 'https://api.telegram.org/bot$(token)/deleteWebhook'
+
+create-schema:
+	mysql -h $(host) -u $(user) -p mysql < sql/create-schema.sql
+
+create-table:
+	mysql -h $(host) -u $(user) -p mysql < sql/create-table.sql
+
+sql: create-schema create-table
 
 platform-docker:
 	docker run -it --rm --entrypoint /bin/sh ${NI_TAG} -c 'echo `uname -s`-`uname -m`' > ${PLATFORM}
@@ -50,9 +70,8 @@ uberjar:
 	lein uberjar
 
 zip:
-	zip -j target/${NAME}-${DATE}.zip conf/handler.sh builds/${NAME}-Linux-x86_64
+	zip -j target/${NAME}.zip conf/handler.sh builds/${NAME}-Linux-x86_64
 
 bash-package: build-binary-docker zip
-
 
 
