@@ -8,4 +8,4 @@
 "user@host:port password"
 
 # https://stackoverflow.com/a/39943226/10354619
-# Stealer 0.3.0
+# Stealer 0.3.1
