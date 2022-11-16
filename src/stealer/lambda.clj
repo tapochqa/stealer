@@ -11,8 +11,6 @@
    [stealer.telegram :as telegram])
   
   (:import
-   java.io.File
-   java.io.InputStream
    java.util.Base64
    ))
 
@@ -35,7 +33,7 @@
            body
            isBase64Encoded
            headers
-           messages] :as request} {:keys [debug-chat-id] :as config}]
+           messages]} {:keys [debug-chat-id] :as config}]
   (let [parsed
         {:remote-addr (get-in requestContext ["identity" "sourceIp"])
          :uri (if (= path "") "/" path)
@@ -54,7 +52,7 @@
                  (-> (str "" body)
                      (str->bytes "UTF-8")
                      (io/input-stream)))}]
-    (if debug-chat-id
+    (when debug-chat-id
       (telegram/send-message config debug-chat-id (str parsed)))
     parsed))
 
@@ -78,12 +76,12 @@
 
 
 (defn handle-request!
-  [{:keys [headers body messages] :as request} config]
+  [{:keys [headers body messages]} config]
   
-  (let [message (-> body
+  (let [update (-> body
                  slurp
                  (json/parse-string true)
-                 :message)
+                 )
         trigger-id
                 (-> messages
                   (json/parse-string true)
@@ -96,7 +94,7 @@
    (json/encode 
      (handling/the-handler
        config
-       message
+       update
        trigger-id))
    
    :headers headers

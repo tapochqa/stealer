@@ -299,13 +299,27 @@
       :reply_markup reply-markup})))
 
 
+(defn get-chat 
+  "https://core.telegram.org/bots/api#getchat"
+  [config chat-id]
+  (api-request
+    config
+    :getChat
+    :get
+    {:chat_id chat-id}))
+
+
 ;;
 ;; Dev
 ;;
 
 #_
-(
+(comment
 
+
+  
+  
+  
  (def telegram
    {:token "..."
     :user-agent "Clojure 1.10.3"
@@ -316,17 +330,14 @@
 
  (ban-user telegram -721166690 223429441 {:unix-until 0})
 
- (send-message telegram -721166690 "hello!")
+ (send-message telegram 163440129 "hello!")
 
- (send-message telegram -721166690 "hello!"
+ (send-message telegram 163440129 "hello!"
                {:reply-markup
                 {:inline_keyboard
-                 [[{:text "a"}
-                   {:text "b"}
-                   {:text "c"}]
-                  [{:text "d"}
-                   {:text "e"}
-                   {:text "f"}]]}})
+                 [[{:text "зюзь"
+                    :url "https://vk.com"}
+                   ]]}})
 
  (restrict-user telegram -721166690 223429441 {:can_send_messages false})
 

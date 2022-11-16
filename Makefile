@@ -1,5 +1,7 @@
 all: bash-package
 
+clean: lint
+
 lint:
 	clj-kondo --lint src
 
@@ -31,12 +33,19 @@ JAR = target/uberjar/${NAME}.jar
 
 DATE = $(shell date +%s)
 
+VERSION = $(shell lein project-version)
+
+HANDLER = conf/handler.sh
+
+version:
+	ghead -n -1 ${HANDLER} > temp ; mv temp ${HANDLER}
+	echo \#\ Stealer\ ${VERSION} >> ${HANDLER}
+
 set-webhook:
-	curl \
-	--request POST \
-	--url 'https://api.telegram.org/bot$(token)/setWebhook' \
-	--header 'content-type: application/json' \
-	--data '{"url": "https://functions.yandexcloud.net/$(id)}'
+	curl 'https://api.telegram.org/bot$(token)/setWebhook?url=https://functions.yandexcloud.net/$(id)'
+
+set-webhook-by-url:
+	curl 'https://api.telegram.org/bot$(token)/setWebhook?url=$(url)'
 
 delete-webhook:
 	curl \
@@ -72,6 +81,6 @@ uberjar:
 zip:
 	zip -j target/${NAME}.zip conf/handler.sh builds/${NAME}-Linux-x86_64
 
-bash-package: build-binary-docker zip
+bash-package: version build-binary-docker zip
 
 

@@ -1,4 +1,4 @@
-(defproject stealer "0.1.0-SNAPSHOT"
+(defproject stealer "0.3.0"
 
   :description
   "Telegram Bot"
@@ -21,6 +21,8 @@
   :uberjar-name "stealer.jar"
   
   :jvm-opts ["-Dfile.encoding=UTF-8"]
+  
+  :plugins [[lein-project-version "0.1.0"]]
 
   :profiles
   {:dev

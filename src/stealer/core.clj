@@ -2,8 +2,7 @@
   (:gen-class)
   (:require
     [stealer.lambda    :as lambda]
-    [clojure.string    :as str]
-    [cheshire.core     :as json]))
+    [stealer.polling   :as polling]))
 
 
 (defn lambda
@@ -14,22 +13,46 @@
 
 
 (defn -main
-  [my-token chat-id debug-chat-id db-creds]
+  [my-token
+   chat-id
+   debug-chat-id
+   caption-url
+   db-creds]
   (lambda  {:token my-token
             :db-creds db-creds
             :chat-id (parse-long chat-id)
-            :debug-chat-id (parse-long debug-chat-id)}))
+            :debug-chat-id (parse-long debug-chat-id)
+            :caption (some? (seq caption-url))
+            :caption-url caption-url}))
 
 
 (comment
+  (-main "123" "-1231 -1232 -1233" "" "https://vk.com" "user@host:port password")
   
-  (binding [*in* (-> "yc-request.json"
-                   clojure.java.io/resource
-                   clojure.java.io/reader)]
+  (binding [*in* (-> "trigger-request.json"
+                 clojure.java.io/resource
+                 clojure.java.io/reader)]
+
+    (-main 
+      "..."
+      "-1001821581750"
+      "..."
+      "http://vk.com"
+      ""))
   
-    (-main nil nil nil nil)
-    
-    )
+  
+  
+  
+  (polling/run-polling
+    {:token "..."
+     :db-creds "..."
+     :chat-id -1001821581750
+     })
+  
+  
+  
+  
+  
   
   
   )

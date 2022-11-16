@@ -1,9 +1,11 @@
 #! /bin/bash
 
-./stealer-Linux-x86_64 "<Token>" "<Target Channel ID>" "<Debug Channel ID>" "user@host:port password"
-
-#                                                                                     ^
-#                                                                               mysql credentials
-
+./stealer-Linux-x86_64 \
+"<Token>" \
+"<Target Channel ID>" \
+"<Debug Channel ID>" \
+"<Caption url>" \
+"user@host:port password"
 
 # https://stackoverflow.com/a/39943226/10354619
+# Stealer 0.3.0

@@ -13,3 +13,5 @@ pom.xml.asc
 .hgignore
 .hg/
 PLATFORM
+TELEGRAM_OFFSET
+testing.clj
