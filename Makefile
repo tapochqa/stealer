@@ -1,3 +1,5 @@
+SHELL:=zsh
+
 all: bash-package
 
 clean: lint
@@ -83,4 +85,7 @@ zip:
 
 bash-package: version build-binary-docker zip
 
-
+package-with-bar:
+	echo -n "black" | nc -4u -w0 localhost 1738
+	make bash-package
+	echo -n "green" | nc -4u -w0 localhost 1738
