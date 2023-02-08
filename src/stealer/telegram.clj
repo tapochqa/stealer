@@ -52,6 +52,8 @@
 
   (let [params
         (filter-params params)
+        
+        
 
         url
         (format "https://api.telegram.org/bot%s/%s"
@@ -59,7 +61,10 @@
 
         request
         {:url url
+         
          :method http-method
+         
+         
          :as :stream}
 
         request
@@ -74,6 +79,7 @@
           keepalive
           (assoc :keepalive keepalive))
 
+        
         request
         (cond-> request
 
@@ -84,11 +90,35 @@
           (= :post http-method)
           (->
            (assoc-in [:headers "content-type"] "application/json")
-           (assoc :body (json/generate-string params))))
-
+           (assoc :body (json/generate-string params)))
+          
+          (= :post-multipart http-method)
+          (->
+            (assoc-in [:headers "content-type"]   "multipart/form-data"
+                                                #_"application/json")
+            (assoc :method :post)
+            (assoc :multipart
+              
+              (let [params (map filter-params (map second params))
+                    ;params (filter-params params)
+                    ]
+                (into
+                  (for [[key value] (first params)]
+                      (try 
+                        {:name (name key)
+                         :content (json/generate-string value)}
+                        (catch Exception e 
+                          {:name (name key)
+                           :content value
+                           :filename (clojure.string/replace (str value) #"/" "")
+                           })))
+                  (for [[key value] (second params)]
+                      {:name (name key)
+                       :content (str value)}))))))
+        
         {:keys [error status body headers]}
         @(http/request request)]
-
+    
     (if error
       (throw (ex-info (format "Telegram HTTP error: %s" (ex-message error))
                       {:api-method api-method
@@ -203,6 +233,77 @@
                  :allow_sending_without_reply allow-sending-without-reply
                  :reply_markup reply-markup})))
 
+(defn send-photo
+  "https://core.telegram.org/bots/api#sendphoto"
+  ([config chat-id photo]
+   (send-photo config chat-id photo nil))
+  
+  ([config chat-id photo {:keys [message-thread-id
+                                 caption
+                                 parse-mode
+                                 caption-entities
+                                 has-spoiler
+                                 disable-notification
+                                 protect-content
+                                 reply-to-message-id
+                                 allow-sending-without-reply
+                                 reply-markup]}]
+   (api-request 
+     config
+     :sendPhoto
+     :post-multipart
+     [{:chat_id chat-id
+       :photo photo}
+      {:message_thread_id message-thread-id
+       :caption caption
+       :parse_mode parse-mode
+       :caption_entities caption-entities
+       :has_spoiler has-spoiler
+       :disable_notification disable-notification
+       :protect_content protect-content
+       :reply_to_message_id reply-to-message-id
+       :allow_sending_without_reply allow-sending-without-reply
+       :reply_markup reply-markup}])))
+
+
+(defn edit-message-text
+  "https://core.telegram.org/bots/api#editmessagetext"
+  ([config chat-id message-id text]
+   (edit-message-text config chat-id message-id text nil))
+  ([config chat-id message-id text {:keys [parse-mode
+                                           entities
+                                           disable-web-page-preview
+                                           reply-markup]}]
+   (api-request 
+     config
+     :editMessageText
+     :post
+     {:chat_id chat-id
+      :message_id message-id
+      :text text
+      :parse_mode parse-mode
+      :entities entities
+      :disable_web_page_preview disable-web-page-preview
+      :reply_markup reply-markup})))
+
+
+(defn edit-message-photo
+  "https://core.telegram.org/bots/api#editmessagemedia"
+  ([config chat-id message-id photo]
+   (edit-message-photo config chat-id message-id photo nil))
+  ([config chat-id message-id photo {:keys [reply-markup]}]
+     (api-request
+       config
+       :editMessageMedia
+       :post-multipart
+       [{:photo photo
+         :media
+         {:type :photo
+          :media "attach://photo"}}
+        {:chat_id chat-id
+         :message_id message-id
+         :reply_markup reply-markup}])))
+
 
 (defn delete-message
   "https://core.telegram.org/bots/api#deletemessage"
@@ -309,35 +410,57 @@
     {:chat_id chat-id}))
 
 
+(defn get-file
+  [config file-id]
+  (let [response (api-request config
+                              :getFile
+                              :get
+                              {:file_id file-id})]
+    
+  (conj response
+        {:url (str "https://api.telegram.org/file/bot" (:token config) "/" (:file_path response))})))
+
+
 ;;
 ;; Dev
 ;;
 
-#_
+
 (comment
 
-
-  
-  
-  
  (def telegram
-   {:token "..."
+   {:token "5751545223:AAGdnzbP3VUPGN0cPodMIbpWFW4APFtmfYw"
     :user-agent "Clojure 1.10.3"
     :timeout 300000
     :keepalive 300000})
+  
+  
+  (send-message telegram 163440129 "aboba")
+  
+  
+  (edit-message-photo
+    telegram
+    163440129
+    106
+    (clojure.java.io/file "target/full.png"))
+
+  (get-me telegram)
 
  (get-updates telegram {:timeout 30 :offset 75640811})
 
  (ban-user telegram -721166690 223429441 {:unix-until 0})
 
- (send-message telegram 163440129 "hello!")
+ (send-message telegram -721166690 "hello!")
 
- (send-message telegram 163440129 "hello!"
+ (send-message telegram -721166690 "hello!"
                {:reply-markup
                 {:inline_keyboard
-                 [[{:text "зюзь"
-                    :url "https://vk.com"}
-                   ]]}})
+                 [[{:text "a"}
+                   {:text "b"}
+                   {:text "c"}]
+                  [{:text "d"}
+                   {:text "e"}
+                   {:text "f"}]]}})
 
  (restrict-user telegram -721166690 223429441 {:can_send_messages false})
 
@@ -345,3 +468,4 @@
 
 
  )
+

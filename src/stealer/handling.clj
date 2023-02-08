@@ -25,7 +25,7 @@
   (telegram/send-message
     config
     from-chat-id
-    "Пересылайте боту сообщения."
+    "Сообщения принимаются только из админского чата."
     {:reply-markup {:keyboard Keyboard}}))
 
 
@@ -59,9 +59,6 @@
       (:stealer/from_chat_id res)
       (:stealer/message_id res)
       payload)
-    
-    #_(sql/delete-row! ds (:stealer/id res))
-    
     res
     ))
 
@@ -93,7 +90,8 @@
           (str "Бот `" (:bot-id payload) "`\n" 
                "Сообщение `" (:message-id payload) "`")
           {:parse-mode "markdown"
-           :reply-markup {:inline_keyboard (inline-keyboard message)}})
+           :reply-markup {:inline_keyboard (inline-keyboard message)}
+           :reply-to-message-id message-id})
        
         bot-id (-> update :from :id)]
       
@@ -116,6 +114,7 @@
   [config 
    cb-message-id
    message-id
+   status
    ]
   
   (let [ds (sql/jdbc-mysql (:db-creds config))
@@ -123,8 +122,13 @@
         message (sql/get-message ds bot-id message-id)]
   
   (sql/delete-message! ds bot-id message-id)
-  (telegram/delete-message config (:stealer/from_chat_id message) cb-message-id)
-  (telegram/delete-message config (:stealer/from_chat_id message) message-id)))
+  (telegram/edit-message-text 
+    config 
+    (:stealer/from_chat_id message) 
+    cb-message-id
+    (str "`" status "`")
+    {:parse-mode "markdown"}
+    )))
 
 
 (defn the-handler 
@@ -133,15 +137,27 @@
   
   (let [message           (:message update)
         text              (:text message)
+        admin-chat-id     (:admin-chat-id config)
+        from-chat-id      (get-in message [:chat :id])
         callback-query    (:callback_query update)
+        bot-id            (:id (telegram/get-me config))
+        from-id           (get-in message [:from :id])
         ]
 
     
-    (if message
+    (if (and message (not= bot-id from-id))
       (cond
-        (= text "/start") (start config message)
-        (= text Length-command) (get-queue-length config message)
-        :else (tg->db config message)
+        
+        (and 
+          (= from-chat-id admin-chat-id)
+          (= text Length-command))
+        (get-queue-length config message)
+        
+        (= from-chat-id admin-chat-id)
+        (tg->db config message)
+        
+        :else
+        (start config message)
         ))
     
     (if callback-query
@@ -150,15 +166,15 @@
             cb-message-id     (:message_id callback-message)]
         
         (if (< callback-data 0)
-          (delete-entry config cb-message-id (- callback-data))
+          (delete-entry config cb-message-id (- callback-data) "Удалено")
           (do
             (db->tg config callback-data)
-            (delete-entry config cb-message-id callback-data))))))
+            (delete-entry config cb-message-id callback-data "Запощено вручную"))))))
   
   (if trigger-id
     (let [res (db->tg config nil)
           cb-message-id (:stealer/reply_id res)
           message-id (:stealer/message_id res)]
-      (delete-entry config cb-message-id message-id))))
+      (delete-entry config cb-message-id message-id "Запощено по таймеру"))))
 
 
