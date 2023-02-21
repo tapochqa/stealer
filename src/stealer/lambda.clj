@@ -8,7 +8,7 @@
    [cheshire.core :as json]
    [clojure.string :as str]
    [stealer.handling :as handling]
-   [stealer.telegram :as telegram])
+   [tg-bot-api.telegram :as telegram])
   
   (:import
    java.util.Base64
