@@ -29,7 +29,7 @@
 
 
 (defn db->tg
-  [{:keys [db-creds caption caption-url] :as config} admin-chat-id message-id]
+  [{:keys [db-creds] :as config} admin-chat-id message-id]
   (let [res
         (if message-id
           (db/get-message config admin-chat-id message-id)
@@ -40,6 +40,12 @@
           (filter
             (comp #{admin-chat-id} :admin-chat-id)
             (:instances config)))
+        
+        caption
+        (:caption instance)
+        
+        caption-url
+        (:caption-url instance)
 
         target-chat-id (:chat-id instance)
         title (->> target-chat-id (telegram/get-chat config) :title)

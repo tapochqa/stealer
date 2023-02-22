@@ -23,7 +23,8 @@
         (edn/read-string db-creds)
         
         config
-        { :token my-token
+        { :test-server false
+          :token my-token
           :instances (as-> instances insts
                        (map edn/read-string insts)
                        (map (fn [{:keys [caption-url] :as i}] 
@@ -34,9 +35,10 @@
               secret-key
               endpoint
               region)
-          :table table}]
-    (lambda config)))
-
+          :table table
+          }]
+    #_(polling/run-polling config)
+      (lambda config)))
 
 (comment
 
