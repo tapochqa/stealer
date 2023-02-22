@@ -21,12 +21,11 @@
 
 
 (defn start
-  [config {{from-chat-id :id} :from}]
+  [config {{from-chat-id :id} :chat}]
   (telegram/send-message
     config
     from-chat-id
-    "Сообщения принимаются только из админского чата."
-    {:reply-markup {:keyboard Keyboard}}))
+    (str "Сообщения принимаются только из админского чата. Айди этого чата: " from-chat-id)))
 
 
 (defn db->tg
@@ -146,21 +145,22 @@
           (some? instance)
           (= text Length-command))
         (get-queue-length config from-chat-id)
+        
         (some? instance)
         (tg->db config message)
 
         :else
         (start config message)))
-
     (if callback-query
       (let [callback-message  (:message callback-query)
             callback-data     (parse-long (:data callback-query))
-            cb-message-id     (:message_id callback-message)]
+            cb-message-id     (:message_id callback-message)
+            admin-chat-id (get-in callback-message [:reply_to_message :chat :id])]
 
         (if (< callback-data 0)
           (delete-entry config admin-chat-id (- callback-data) "Удалено")
           (do
-            (db->tg config callback-data)
+            (db->tg config admin-chat-id callback-data)
             (delete-entry config admin-chat-id callback-data "Запощено вручную"))))))
 
   (if trigger-id

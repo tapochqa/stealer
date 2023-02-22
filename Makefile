@@ -86,6 +86,6 @@ zip:
 bash-package: version build-binary-docker zip
 
 package-with-bar:
-	echo -n "black" | nc -4u -w0 localhost 1738
+	echo -n "white" | nc -4u -w0 localhost 1738
 	make bash-package
-	echo -n "green" | nc -4u -w0 localhost 1738
+	echo -n "black" | nc -4u -w0 localhost 1738

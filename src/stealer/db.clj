@@ -65,61 +65,21 @@
     table
     {:message_id message-id
      :chat_id chat-id}
-    {:reply reply}))
-
+    {:set {:reply reply}}))
 
 (comment
   
   
   (def CLIENT
     (api/make-client "..."
-                     "..."
+                     "...-..."
                      "https://docapi.serverless.yandexcloud.net/ru-central1/.../..."
                      "ru-central1"))
   
   (api/create-table CLIENT
-                  "stealer-3"
+                  "stealer"
                   {:chat_id :N
                    :message_id :N}
                   {:chat_id const/key-type-hash
                    :message_id const/key-type-range}
-                  {:table-class "DOCUMENT"})
-  
-  
-  (api/put-item 
-    CLIENT
-    "stealer-3"
-    {:chat_id 1234
-     :message_id 1
-     :message {:a "B" :c "D"}})
-  
-  (api/update-item
-    CLIENT 
-    "stealer-3"
-    {:chat_id 1234
-     :message_id 1}
-    {:set {:reply {:foo "baz"}}})
-  
-  (get-first-message {:client CLIENT :table "stealer-3"} 1234)
-  (get-queue-length {:client CLIENT :table "stealer-3"} 1234)
-  (get-message {:client CLIENT :table "stealer-3"} 1234 1) 
-  
-  (api/query CLIENT
-             "stealer-3"
-             {:sql-key "#id = :one"
-              :attr-names {"#id" :chat_id}
-              :attr-values {":one" 1234}})
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  )
+                  {:table-class "DOCUMENT"}))

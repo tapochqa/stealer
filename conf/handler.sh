@@ -1,12 +1,17 @@
 #! /bin/bash
 
 ./stealer-Linux-x86_64 \
-"<Token>" \
-"<Target Channel ID>" \
-"<Admin Chat ID>"\
-"<Debug Channel ID>" \
-"<Caption url>" \
-"user@host:port password"
+'...:...' \
+'{:access-key    "..."
+  :secret-key    "...-..."
+  :endpoint      "https://docapi.serverless.yandexcloud.net/ru-central1/.../..."
+  :region        "ru-central1"
+  :table         "stealer"}' \
+'{:chat-id       -...
+  :admin-chat-id -... 
+  :debug-chat-id nil
+  :trigger-id    "..." 
+  :caption-url   "https://..."}'
 
 # https://stackoverflow.com/a/39943226/10354619
-# Stealer 0.3.5
+# Stealer 0.4.0

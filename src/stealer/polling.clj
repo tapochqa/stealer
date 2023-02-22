@@ -1,6 +1,6 @@
 (ns stealer.polling
   (:require 
-    [stealer.telegram :as telegram]
+    [tg-bot-api.telegram :as telegram]
     [stealer.handling :as handling]
     [cheshire.core :as json]))
 
