@@ -85,6 +85,8 @@ zip:
 
 bash-package: version build-binary-docker zip
 
+light-bash-package: build-binary-docker zip
+
 package-with-bar:
 	echo -n "white" | nc -4u -w0 localhost 1738
 	make bash-package
