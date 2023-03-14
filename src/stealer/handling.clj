@@ -28,26 +28,17 @@
     (str "Сообщения принимаются только из админского чата. Айди этого чата: " from-chat-id)))
 
 
-(defn db->tg
-  [{:keys [db-creds] :as config} admin-chat-id message-id]
-  (let [res
-        (if message-id
-          (db/get-message config admin-chat-id message-id)
-          (db/get-first-message config admin-chat-id))
-
-        instance
-        (first
-          (filter
-            (comp #{admin-chat-id} :admin-chat-id)
-            (:instances config)))
-        
-        caption
+(defn ->tg
+  [config instance message]
+  (let [caption
         (:caption instance)
         
         caption-url
         (:caption-url instance)
 
         target-chat-id (:chat-id instance)
+        admin-chat-id  (:admin-chat-id instance)
+        
         title (->> target-chat-id (telegram/get-chat config) :title)
 
         payload
@@ -64,9 +55,28 @@
       config
       target-chat-id
       admin-chat-id
-      (:message_id res)
-      payload)
-    res))
+      (:message_id message)
+      payload)))
+
+
+(defn db->tg
+  [{:keys [db-creds] :as config} admin-chat-id message-id]
+  (let [res
+        (if message-id
+          (db/get-message config admin-chat-id message-id)
+          (db/get-first-message config admin-chat-id))
+
+        instance
+        (first
+          (filter
+            (comp #{admin-chat-id} :admin-chat-id)
+            (:instances config)))
+        
+        ]
+    
+    (->tg config instance res)
+    res
+    ))
 
 
 (defn tg->db
@@ -153,7 +163,9 @@
         (get-queue-length config from-chat-id)
         
         (some? instance)
-        (tg->db config message)
+        (if (some? (:trigger-id instance))
+          (tg->db config message)
+          (->tg config instance message))
 
         :else
         (start config message)))
@@ -183,7 +195,7 @@
           (db->tg config admin-chat-id nil)
 
           message-id 
-          (:message_id res)]
+          (get-in res [:message :message_id])]
       (delete-entry config admin-chat-id message-id "Запощено по таймеру"))))
 
 

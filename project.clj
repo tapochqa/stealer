@@ -1,4 +1,4 @@
-(defproject stealer "0.4.1"
+(defproject stealer "0.5.2"
 
   :description
   "Telegram Bot"
@@ -27,7 +27,8 @@
   
   :jvm-opts ["-Dfile.encoding=UTF-8"]
   
-  :plugins [[lein-project-version "0.1.0"]]
+  :plugins [[lein-project-version "0.1.0"]
+            [lein-bump-version "0.1.6"]]
 
   :profiles
   {:dev

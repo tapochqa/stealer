@@ -1,6 +1,6 @@
 SHELL:=zsh
 
-all: bash-package
+all: bash-package upload-version deploy-version
 
 clean: lint
 
@@ -91,3 +91,17 @@ package-with-bar:
 	echo -n "white" | nc -4u -w0 localhost 1738
 	make bash-package
 	echo -n "black" | nc -4u -w0 localhost 1738
+
+upload-version:
+	aws --endpoint-url=https://storage.yandexcloud.net/ \
+		s3 cp target/${NAME}.zip s3://lmnd/${NAME}.zip
+
+deploy-version:
+	yc serverless function version create \
+		--function-name=${NAME} \
+		--runtime bash \
+		--entrypoint handler.sh \
+		--memory 128m \
+		--execution-timeout 3s \
+		--package-bucket-name lmnd \
+		--package-object-name ${NAME}.zip

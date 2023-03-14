@@ -14,4 +14,4 @@
   :caption-url   "https://..."}'
 
 # https://stackoverflow.com/a/39943226/10354619
-# Stealer 0.4.1
+# Stealer 0.5.2
