@@ -17,8 +17,7 @@
 
 (defn -main
   [tg-token
-   vk-token
-   vk-response ; response string for vk callback api setup
+   vk-token; response string for vk callback api setup
    db-creds
    & instances]
   (let [{:keys [access-key secret-key endpoint region table]} 
@@ -28,7 +27,6 @@
         { :test-server false
           :token tg-token
           :vk-token vk-token
-          :vk-response vk-response
           :instances (as-> instances insts
                        (map edn/read-string insts)
                        (map (fn [{:keys [caption-url] :as i}] 
@@ -45,18 +43,21 @@
       (lambda config)))
 
 (comment
+  
+  (binding [*in* (-> "trigger-request.json"
+                 clojure.java.io/resource
+                 clojure.java.io/reader)]
 
-  (-main
-    "...:..."
-    "..."
-    "aabbcc"
-    "{:access-key \" \" 
-      :secret-key \" \" 
-      :endpoint \" \" 
-      :region \"ru-central1\"
-      :table \"stealer\"}"
-    "{:chat-id 12345 
-      :admin-chat-id 12346 
-      :debug-chat-id nil 
-      :trigger-id \"sjdfkjsdflkjslkdjh\" 
-      :caption-url \"https://vk.com\"}"))
+    (-main
+      "...:..."
+      "..."
+      "{:access-key \" \" 
+        :secret-key \" \" 
+        :endpoint \" \" 
+        :region \"ru-central1\"
+        :table \"stealer\"}"
+      "{:chat-id 12345 
+        :admin-chat-id 12346 
+        :debug-chat-id nil 
+        :trigger-id \"sjdfkjsdflkjslkdjh\" 
+        :caption-url \"https://vk.com\"}")))
