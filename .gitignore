@@ -16,3 +16,4 @@ PLATFORM
 TELEGRAM_OFFSET
 testing.clj
 conf/test-handler.sh
+token-*

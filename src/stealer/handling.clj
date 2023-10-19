@@ -1,7 +1,27 @@
 (ns stealer.handling
   (:require
     [tg-bot-api.telegram :as telegram]
-    [stealer.db :as db]))
+    [stealer.db :as db]
+    [stealer.vk :as vk]
+    
+    [clojure.spec.alpha :as spec]))
+
+
+(spec/def :confirmation/type #{"confirmation"})
+
+(spec/def :confirmation/group_id int?)
+
+(spec/def ::confirmation
+  (spec/and 
+    (spec/keys :req-un [:confirmation/type :confirmation/group_id])))
+
+
+(spec/def ::message
+  (spec/keys :req-un [:update/message]))
+
+
+(spec/def ::callback-query
+  (spec/keys :req-un [:update/callback_query]))
 
 
 (def Length-command
@@ -139,49 +159,56 @@
 (defn the-handler
   "Bot logic here"
   [config update trigger-id]
+  
+  (cond 
+    
+    (spec/valid? ::confirmation update)
+    (:code (vk/groups--get-callback-confirmation-code config))
+    
+    (spec/valid? ::message update)
+    (let [message           (:message update)
+          text              (:text message)
+          from-chat-id      (get-in message [:chat :id])
 
-  (let [message           (:message update)
-        text              (:text message)
-        from-chat-id      (get-in message [:chat :id])
+          instance
+          (first
+            (filter
+              (comp #{from-chat-id} :admin-chat-id)
+              (:instances config)))
 
-        instance
-        (first
-          (filter
-            (comp #{from-chat-id} :admin-chat-id)
-            (:instances config)))
+          admin-chat-id     (:admin-chat-id instance)
+          callback-query    (:callback_query update)
+          bot-id            (:id (telegram/get-me config))
+          from-id           (get-in message [:from :id])]
 
-        admin-chat-id     (:admin-chat-id instance)
-        callback-query    (:callback_query update)
-        bot-id            (:id (telegram/get-me config))
-        from-id           (get-in message [:from :id])]
-
-    (if (and message (not= bot-id from-id))
-      (cond
-        (and
+      (if (and message (not= bot-id from-id))
+        (cond
+          (and
+            (some? instance)
+            (= text Length-command))
+          (get-queue-length config from-chat-id)
+          
           (some? instance)
-          (= text Length-command))
-        (get-queue-length config from-chat-id)
-        
-        (some? instance)
-        (if (some? (:trigger-id instance))
-          (tg->db config message)
-          (->tg config instance message))
+          (if (some? (:trigger-id instance))
+            (tg->db config message)
+            (->tg config instance message))
 
-        :else
-        (start config message)))
-    (if callback-query
-      (let [callback-message  (:message callback-query)
-            callback-data     (parse-long (:data callback-query))
-            cb-message-id     (:message_id callback-message)
-            admin-chat-id (get-in callback-message [:reply_to_message :chat :id])]
+          :else
+          (start config message)))
+      
+      (if callback-query
+        (let [callback-message  (:message callback-query)
+              callback-data     (parse-long (:data callback-query))
+              cb-message-id     (:message_id callback-message)
+              admin-chat-id (get-in callback-message [:reply_to_message :chat :id])]
 
-        (if (< callback-data 0)
-          (delete-entry config admin-chat-id (- callback-data) "Удалено")
-          (do
-            (db->tg config admin-chat-id callback-data)
-            (delete-entry config admin-chat-id callback-data "Запощено вручную"))))))
+          (if (< callback-data 0)
+            (delete-entry config admin-chat-id (- callback-data) "Удалено")
+            (do
+              (db->tg config admin-chat-id callback-data)
+              (delete-entry config admin-chat-id callback-data "Запощено вручную"))))))
 
-  (if trigger-id
+    (some? trigger-id)
     (let [instance
           (first
             (filter

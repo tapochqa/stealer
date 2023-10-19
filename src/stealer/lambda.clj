@@ -4,11 +4,12 @@
 (ns stealer.lambda
   
   (:require
-   [clojure.java.io :as io]
-   [cheshire.core :as json]
-   [clojure.string :as str]
-   [stealer.handling :as handling]
-   [tg-bot-api.telegram :as telegram])
+    [clojure.spec.alpha :as spec]
+    [clojure.java.io :as io]
+    [cheshire.core :as json]
+    [clojure.string :as str]
+    [stealer.handling :as handling]
+    [tg-bot-api.telegram :as telegram])
   
   (:import
    java.util.Base64
@@ -103,11 +104,13 @@
 
 
 (defn response->
-  [{:keys [status headers]}]
+  [{:keys [status headers body]} config]
   (json/with-writer [*out* nil]
     (json/write
      (cond-> nil
        status
        (assoc :statusCode status)
        headers
-       (assoc :headers headers)))))
+       (assoc :headers headers)
+       body
+       (assoc :body body)))))

@@ -13,10 +13,12 @@
   [config]
   (-> (lambda/->request config)
       (lambda/handle-request! config)
-      (lambda/response->)))
+      (lambda/response-> config)))
 
 (defn -main
-  [my-token
+  [tg-token
+   vk-token
+   vk-response ; response string for vk callback api setup
    db-creds
    & instances]
   (let [{:keys [access-key secret-key endpoint region table]} 
@@ -24,7 +26,9 @@
         
         config
         { :test-server false
-          :token my-token
+          :token tg-token
+          :vk-token vk-token
+          :vk-response vk-response
           :instances (as-> instances insts
                        (map edn/read-string insts)
                        (map (fn [{:keys [caption-url] :as i}] 
@@ -44,6 +48,8 @@
 
   (-main
     "...:..."
+    "..."
+    "aabbcc"
     "{:access-key \" \" 
       :secret-key \" \" 
       :endpoint \" \" 
