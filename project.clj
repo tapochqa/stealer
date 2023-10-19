@@ -1,4 +1,4 @@
-(defproject stealer "0.5.2"
+(defproject stealer "0.6-SNAPSHOT"
 
   :description
   "Telegram Bot"
