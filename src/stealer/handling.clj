@@ -274,7 +274,7 @@
               (comp #{(-> update :object :message :peer_id)} :vk-admin-chat-id)
               (:instances config)))]
     
-      (if
+      (when
         (some? instance)
         (the-router
           config
@@ -286,7 +286,8 @@
                           (sort-by :height)
                           reverse
                           first
-                          :url))))))
+                          :url)))))
+      "ok")
     
     (spec/valid? ::confirmation update)
     (:code (vk/groups--get-callback-confirmation-code config))
