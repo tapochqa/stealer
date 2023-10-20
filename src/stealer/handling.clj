@@ -83,12 +83,6 @@
           [:message/type
            :with-photo/object]))
 
-(spec/valid? ::vk-message-w-photo
-  (->
-    (edn/read-string (slurp "msg-w-photo.edn"))
-    :updates
-    first))
-
 ;;
 ;;
 ;;
