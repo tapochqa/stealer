@@ -4,7 +4,9 @@
     [stealer.db :as db]
     [stealer.vk :as vk]
     
-    [clojure.spec.alpha :as spec]))
+    [clojure.spec.alpha :as spec]
+    [clojure.edn :as edn]
+    [clojure.java.io :as io]))
 
 
 (spec/def :confirmation/type #{"confirmation"})
@@ -22,6 +24,74 @@
 
 (spec/def ::callback-query
   (spec/keys :req-un [:update/callback_query]))
+
+
+
+
+;;
+;;
+;;
+
+
+(spec/def ::ne-string
+  (spec/and string? not-empty))
+
+(spec/def :size/height (spec/and int? (fn [x] (> x 0))))
+
+(spec/def :size/width (spec/and int? (fn [x] (> x 0))))
+
+(spec/def :size/url
+  (spec/and ::ne-string
+    (partial re-matches #"(?i)^http(s?)://.*")))
+
+(spec/def ::size
+  (spec/keys :req-un
+    [:size/height
+     :size/width
+     :size/url]))
+
+(spec/def :photo/sizes
+  (spec/coll-of ::size :min-count 1))
+
+(spec/def :attachments/photo
+  (spec/keys :req-un 
+    [:photo/sizes
+     :photo/owner_id]))
+
+(spec/def :attachment-photo/type #{"photo"})
+
+(spec/def ::attachment-photo
+  (spec/keys :req-un 
+    [:attachment-photo/type
+     :attachments/photo]))
+
+(spec/def :message-w-photo/attachments
+  (spec/coll-of ::attachment-photo :min-count 1 :max-count 1))
+
+(spec/def :with-photo/message
+  (spec/keys :req-un
+          [:message-w-photo/attachments]))
+
+(spec/def :with-photo/object
+  (spec/keys :req-un
+          [:with-photo/message]))
+
+(spec/def :message/type #{"message_new"})
+
+(spec/def ::vk-message-w-photo
+    (spec/keys :req-un
+          [:message/type
+           :with-photo/object]))
+
+(spec/valid? ::vk-message-w-photo
+  (->
+    (edn/read-string (slurp "msg-w-photo.edn"))
+    :updates
+    first))
+
+;;
+;;
+;;
 
 
 (def Length-command
@@ -156,14 +226,71 @@
     {:parse-mode "markdown"})))
 
 
+(defn get-instance
+  [config message]
+  (let [from-chat-id (get-in message [:chat :id])]
+    (first
+      (filter
+        (comp #{from-chat-id} :admin-chat-id)
+        (:instances config)))))
+
+
+(defn the-router
+        [config message]
+        (let [from-chat-id      
+              (get-in message [:chat :id])
+              
+              text              
+              (:text message)
+
+              instance
+              (get-instance config message)]
+          
+          (cond
+            (and
+              (some? instance)
+              (= text Length-command))
+            (get-queue-length config from-chat-id)
+            
+            (some? instance)
+            (if (some? (:trigger-id instance))
+              (tg->db config message)
+              (->tg config instance message))
+
+            :else
+            (start config message))))
+
+
 (defn the-handler
   "Bot logic here"
   [config update trigger-id]
   
   (cond 
+
+    (spec/valid? ::vk-message-w-photo update)
+    (let [instance
+          (first
+            (filter
+              (comp #{(-> update :object :message :peer_id)} :vk-admin-chat-id)
+              (:instances config)))]
+    
+      (if
+        (some? instance)
+        (the-router
+          config
+          (telegram/send-photo
+            config
+            (:admin-chat-id instance)
+            (io/input-stream
+              (->> update :object :message :attachments first :photo :sizes
+                          (sort-by :height)
+                          reverse
+                          first
+                          :url))))))
     
     (spec/valid? ::confirmation update)
     (:code (vk/groups--get-callback-confirmation-code config))
+
     
     (spec/valid? ::message update)
     (let [message           (:message update)
@@ -171,30 +298,16 @@
           from-chat-id      (get-in message [:chat :id])
 
           instance
-          (first
-            (filter
-              (comp #{from-chat-id} :admin-chat-id)
-              (:instances config)))
+          (get-instance config message)
 
           admin-chat-id     (:admin-chat-id instance)
           callback-query    (:callback_query update)
           bot-id            (:id (telegram/get-me config))
           from-id           (get-in message [:from :id])]
 
+      
       (if (and message (not= bot-id from-id))
-        (cond
-          (and
-            (some? instance)
-            (= text Length-command))
-          (get-queue-length config from-chat-id)
-          
-          (some? instance)
-          (if (some? (:trigger-id instance))
-            (tg->db config message)
-            (->tg config instance message))
-
-          :else
-          (start config message)))
+        (the-router config message))
       
       (if callback-query
         (let [callback-message  (:message callback-query)

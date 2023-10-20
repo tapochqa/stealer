@@ -5,7 +5,8 @@
     
     [clojure.string :as str]
     [clojure.java.io :as io]
-    [clojure.spec.alpha :as spec]))
+    [clojure.spec.alpha :as spec]
+    [clojure.edn :as edn]))
 
 
 (defn filter-params
@@ -36,6 +37,67 @@
         (assoc! result k v)))
     (transient {})
     params)))
+
+
+(defn handle-response
+  [{:keys [error status body headers]}
+   {:keys [api-method 
+           http-method 
+           params
+           success-key
+           error-key]}]
+  (if error
+    (throw (ex-info (format "VK HTTP error: %s" (ex-message error))
+                    {:api-method api-method
+                     :api-params params}
+                    error))
+
+    (let [{:keys [content-type]}
+          headers
+
+          json?
+          (some-> content-type
+                  (str/starts-with? "application/json"))
+
+          ;; parse JSON manually as Http Kit cannot
+          body-json
+          (if json?
+            (-> body io/reader (json/decode-stream keyword))
+            (throw (ex-info (format "VK response was not JSON: %s" content-type)
+                            {:http-status status
+                             :http-method http-method
+                             :http-headers headers
+                             :api-method api-method
+                             :api-params params})))
+          
+          success
+          (when success-key
+            (success-key body-json))
+          
+          error
+          (when error-key
+            (error-key body-json))]
+      
+
+      (cond
+        success
+        success
+        
+        error
+        (throw (ex-info (format "VK API error: %s %s %s"
+                                (:error_code error) 
+                                api-method 
+                                (:error_msg error))
+                        {:http-status status
+                         :http-method http-method
+                         :api-method api-method
+                         :api-params params
+                         :error-code (:error_code error)
+                         :error (:error_msg error)
+                         :body body-json}))
+        
+        :else
+        body-json))))
 
 
 (defn api-request
@@ -114,50 +176,15 @@
                       {:name (name key)
                        :content (str value)}))))))
 
-        {:keys [error status body headers]}
+        response
         @(http/request request)]
-
-        (if error
-          (throw (ex-info (format "VK HTTP error: %s" (ex-message error))
-                          {:api-method api-method
-                           :api-params params}
-                          error))
-
-          (let [{:keys [content-type]}
-                headers
-
-                json?
-                (some-> content-type
-                        (str/starts-with? "application/json"))
-
-                ;; parse JSON manually as Http Kit cannot
-                body-json
-                (if json?
-                  (-> body io/reader (json/decode-stream keyword))
-                  (throw (ex-info (format "VK response was not JSON: %s" content-type)
-                                  {:http-status status
-                                   :http-method http-method
-                                   :http-headers headers
-                                   :api-method api-method
-                                   :api-params params})))
-
-                {:keys [response
-                        error]
-                 :as fin}
-                body-json]
-
-            (if response
-              response
-              (throw (ex-info (format "VK API error: %s %s %s"
-                                      (:error_code error) 
-                                      api-method 
-                                      (:error_msg error))
-                              {:http-status status
-                               :http-method http-method
-                               :api-method api-method
-                               :api-params params
-                               :error-code (:error_code error)
-                               :error (:error_msg error)})))))))
+    
+    (handle-response response 
+      {:api-method api-method 
+       :http-method http-method 
+       :params params
+       :success-key :response
+       :error-key :error})))
 
 
 (defn groups--get-by-id
@@ -179,6 +206,14 @@
      params)))
 
 
+(defn group-id
+  [config]
+  (-> (groups--get-by-id config)
+      :groups
+      first
+      :id))
+
+
 (defn groups--get-callback-confirmation-code
   "https://vk.com/dev/groups.getCallbackConfirmationCode"
   ([config]
@@ -187,10 +222,7 @@
      :groups.getCallbackConfirmationCode
      :get
      {:group_id
-      (-> (groups--get-by-id config)
-          :groups
-          first
-          :id)}))
+      (group-id config)}))
   ([config {:keys [group_id]
             :as params}]
     (api-request 
@@ -200,11 +232,75 @@
       params)))
 
 
+(defn groups--get-long-poll-server
+  ([config]
+   (api-request
+     config
+     :groups.getLongPollServer
+     :get
+     {:group_id
+      (group-id config)}))
+  ([config {:keys [group_id]
+            :as params}]
+   (api-request
+     config
+     :groups.getLongPollServer
+     :get
+     params)))
+
+
+(defn get-updates
+  ([config]
+    (let [server-map
+          (groups--get-long-poll-server config)]
+      (get-updates config server-map)))
+  ([config {:keys [ts]}]
+   (let [{:keys [server key]}
+         (groups--get-long-poll-server config)
+         
+         url
+         (format "%s?act=a_check&key=%s&ts=%s"
+           server key (if (some? ts)
+                          ts
+                          0))
+         
+         response
+         @(http/request {:url url
+                         :method :get
+                         :as :stream})]
+     (handle-response response {:api-method nil 
+                                :http-method :get 
+                                :params {}
+                                :error-key :failed}))))
+
+
+
 
 
 (comment
+  
+  (spec/valid? ::vk-message-w-photo
+    (-> (edn/read-string (slurp "msg-w-photo.edn"))
+          :updates
+          first
+          :object
+          :message))
+
   (def ML {:vk-token (slurp "token-ml")})
   
   (groups--get-callback-confirmation-code ML)
-  (groups--get-by-id ML)
+  (groups--get-by-id nil)
+  (groups--get-long-poll-server ML)
+  (:updates (get-updates ML {:ts 6}))
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   )

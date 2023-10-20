@@ -39,7 +39,7 @@
               region)
           :table table
           }]
-    #_(polling/run-polling config)
+      #_(polling/run-polling config)
       (lambda config)))
 
 (comment
