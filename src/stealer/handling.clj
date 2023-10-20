@@ -206,7 +206,8 @@
             (delete-entry config admin-chat-id (- callback-data) "Удалено")
             (do
               (db->tg config admin-chat-id callback-data)
-              (delete-entry config admin-chat-id callback-data "Запощено вручную"))))))
+              (delete-entry config admin-chat-id callback-data "Запощено вручную")))))
+      nil)
 
     (some? trigger-id)
     (let [instance
@@ -223,6 +224,7 @@
 
           message-id 
           (get-in res [:message :message_id])]
-      (delete-entry config admin-chat-id message-id "Запощено по таймеру"))))
+      (delete-entry config admin-chat-id message-id "Запощено по таймеру")
+      nil)))
 
 

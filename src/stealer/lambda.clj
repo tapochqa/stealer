@@ -92,15 +92,15 @@
                   )]
   
   {:body
-   (json/encode 
-     (handling/the-handler
-       config
-       update
-       trigger-id))
+   (handling/the-handler
+     config
+     update
+     trigger-id)
    
    :headers headers
    
    :status 200}))
+
 
 
 (defn response->
