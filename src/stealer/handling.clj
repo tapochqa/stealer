@@ -333,6 +333,11 @@
           message-id 
           (get-in res [:message :message_id])]
       (delete-entry config admin-chat-id message-id "Запощено по таймеру")
-      nil)))
+      nil)
+    
+    :else
+    "ok"
+    
+    ))
 
 
