@@ -9,6 +9,8 @@
     [clojure.java.io :as io]))
 
 
+
+
 (spec/def :confirmation/type #{"confirmation"})
 
 (spec/def :confirmation/group_id int?)
@@ -31,7 +33,6 @@
 ;;
 ;;
 ;;
-
 
 (spec/def ::ne-string
   (spec/and string? not-empty))
@@ -255,13 +256,31 @@
             (start config message))))
 
 
+(defn find-deep [pred data not-found]
+  (->> data
+       (tree-seq coll? seq)
+       (some #(when (pred %) [%]))
+       ((fnil first [not-found]))))
+
+
+(comment
+  (some?
+    (find-deep (fn [x] (spec/valid? ::attachment-photo x))
+             (->> "msg-w-photo.edn" slurp edn/read-string)
+             nil)))
+
+
+
 (defn the-handler
   "Bot logic here"
   [config update trigger-id]
   
   (cond 
-
-    (spec/valid? ::vk-message-w-photo update)
+    (some?
+      (find-deep
+        (fn [x] (spec/valid? ::attachment-photo x))
+        update
+        nil))
     (let [instance
           (first
             (filter
@@ -276,11 +295,16 @@
             config
             (:admin-chat-id instance)
             (io/input-stream
-              (->> update :object :message :attachments first :photo :sizes
-                          (sort-by :height)
-                          reverse
-                          first
-                          :url)))))
+              (->>
+                (find-deep
+                  (fn [x] (spec/valid? ::attachment-photo x))
+                  update
+                  nil)
+                :photo :sizes
+                (sort-by :height)
+                reverse
+                first
+                :url)))))
       "ok")
     
     (spec/valid? ::confirmation update)

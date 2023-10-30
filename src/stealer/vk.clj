@@ -262,7 +262,7 @@
          (format "%s?act=a_check&key=%s&ts=%s"
            server key (if (some? ts)
                           ts
-                          0))
+                          1))
          
          response
          @(http/request {:url url
@@ -291,10 +291,10 @@
   (groups--get-callback-confirmation-code ML)
   (groups--get-by-id nil)
   (groups--get-long-poll-server ML)
-  (:updates (get-updates ML {:ts 6}))
+  (:updates (get-updates ML {:ts 66}))
   
   
-  
+  (spit "VK_OFFSET" 65 )
   
   
   

@@ -13,7 +13,7 @@ pom.xml.asc
 .hgignore
 .hg/
 PLATFORM
-TELEGRAM_OFFSET
+*_OFFSET
 testing.clj
 conf/test-handler.sh
 token-*

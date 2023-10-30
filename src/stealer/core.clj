@@ -17,7 +17,7 @@
 
 (defn -main
   [tg-token
-   vk-token; response string for vk callback api setup
+   vk-token
    db-creds
    & instances]
   (let [{:keys [access-key secret-key endpoint region table]} 
