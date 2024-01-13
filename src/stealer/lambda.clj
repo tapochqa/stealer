@@ -16,6 +16,17 @@
    ))
 
 
+(defmacro with-safe-log
+  "
+  A macro to wrap Telegram calls (prevent the whole program from crushing).
+  "
+  [& body]
+  `(try
+     ~@body
+     (catch Throwable e#
+       (str (ex-message e#)))))
+
+
 (defn str->bytes
   ^bytes [^String string ^String encoding]
   (.getBytes string encoding))
@@ -92,10 +103,11 @@
                   )]
   
   {:body
-   (handling/the-handler
-     config
-     update
-     trigger-id)
+   (with-safe-log
+    (handling/the-handler
+       config
+       update
+      trigger-id))
    
    :headers headers
    

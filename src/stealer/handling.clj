@@ -136,12 +136,21 @@
           {:caption ""
            :caption-entities ""})]
 
-    (telegram/copy-message
-      config
-      target-chat-id
-      admin-chat-id
-      (:message_id message)
-      payload)))
+
+    (cond
+      (map? message)
+      (telegram/copy-message
+        config
+        target-chat-id
+        admin-chat-id
+        (:message_id message)
+        payload)
+
+      (vector? message)
+      nil
+      )))
+
+
 
 
 (defn db->tg
@@ -260,14 +269,16 @@
   (->> data
        (tree-seq coll? seq)
        (some #(when (pred %) [%]))
-       ((fnil first [not-found]))))
+       #_((fnil first [not-found]))))
+
+
 
 
 (comment
   (some?
     (find-deep (fn [x] (spec/valid? ::attachment-photo x))
              (->> "msg-w-photo.edn" slurp edn/read-string)
-             nil)))
+              nil)))
 
 
 

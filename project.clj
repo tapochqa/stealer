@@ -10,7 +10,7 @@
   :dependencies
   [[org.clojure/clojure "1.11.1"]
    
-   [link.lmnd/tg-bot-api "0.1.1"]
+   [link.lmnd/tg-bot-api "0.1.8"]
    [com.github.igrishaev/dynamodb "0.1.3"]
    
    [http-kit            "2.6.0"]
